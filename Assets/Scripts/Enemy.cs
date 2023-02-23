@@ -15,7 +15,9 @@ public class Enemy : MonoBehaviour
     public GameObject bulletPrefeb;
     SpriteRenderer spriteRender;
 
-    Rigidbody2D rd;
+    public bool isStop = false;
+
+    public Rigidbody2D rd;
 
     ///Start보다 이전에 실행되며, 스크립트가 비활성화가 되어있어도 실행된다.
     ///반대로 Start는 스크립트가 활성화가 되어야만 실행이된다.
@@ -35,9 +37,12 @@ public class Enemy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        Fire();
-        RelodadBullet();
+        if (isStop == false)
+        {
+            Fire();
+            RelodadBullet();
+        }
+        
 
     }
 
@@ -78,7 +83,7 @@ public class Enemy : MonoBehaviour
 
         
     }
-    void OnHit(float bulletPower)
+    public void OnHit(float bulletPower)
     {
         health -= bulletPower;
         spriteRender.sprite = sprites[1];

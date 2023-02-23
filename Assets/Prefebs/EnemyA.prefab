@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: -8352332390070218070}
   m_Layer: 0
   m_Name: EnemyA
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -162,7 +162,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 4
-  health: 1
+  health: 6
   curBulletDelay: 0
   maxBulletDelay: 1
   playerObject: {fileID: 0}

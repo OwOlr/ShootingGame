@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
     public float speed;
     public float power = 0f;
-    public float life = 3;
+    public int life = 3;
     public bool isHit = false;
     public bool isdelCol = false;
 
@@ -24,7 +25,9 @@ public class PlayerController : MonoBehaviour
     public float curColDelay = 0f;
     public float maxColDelay = 1f;
 
-    public GameObject gameMObj;
+    public int nScore;
+    public GameObject boomEffectObj;
+
 
     SpriteRenderer spRenderer;
     Animator anim;
@@ -44,14 +47,11 @@ public class PlayerController : MonoBehaviour
         {
             Move();
         }
-        
         Fire();
-        RelodadBullet();
-
-
-       
+        RelodadBullet(); 
 
     }
+
     private void FixedUpdate()
     {
         if (isdelCol)
@@ -65,8 +65,7 @@ public class PlayerController : MonoBehaviour
             isdelCol = false;
             isStop = false;
             gameObject.GetComponent<PolygonCollider2D>().enabled = true;
-                 curColDelay = 0;
-                 
+            curColDelay = 0;             
         }
         
         if (isHit)
@@ -85,10 +84,7 @@ public class PlayerController : MonoBehaviour
             return; 
 
         }
-
-       
-
-        
+ 
     }
 
     public void Move()
@@ -222,27 +218,67 @@ public class PlayerController : MonoBehaviour
         }
         if(collision.gameObject.tag == "EnemyBullet")
         {
+            isHit = true;
+            isdelCol = true;
+            life--;
 
-            GameManager gameLogic = gameMObj.GetComponent<GameManager>();
-            if (life == 0)
+            gameObject.GetComponent<PolygonCollider2D>().enabled = false;
+            isStop = true;
+            GameManager.instance.ResPawnPlayer();
+            
+            if (life <= 0)
+                {
+                    GameManager.instance.GameOver();
+                }
+            
+        }
+
+        if (collision.gameObject.tag == "Item")
+        {
+            Item item = collision.gameObject.GetComponent<Item>();
+            
+            switch (item.type)
             {
-                gameLogic.GameOver();
-            }
-            else
-            {
-                isHit = true;
-                isdelCol = true;
-                life--;
-               
-                gameObject.GetComponent<PolygonCollider2D>().enabled = false;
-                isStop = true;
-                gameLogic.ResPawnPlayer();
+                case ItemType.Coin:
+                    nScore += 100;
+                    break;
+                case ItemType.Power:
+                    power++;
+                    if (power >= 3)
+                        power = 3;
+                    break;
+                case ItemType.Boom:
+                    { 
+                        boomEffectObj.SetActive(true);
+                        Invoke("OffBoomEffect", 4.0f);
 
-                
+                        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+                        foreach (var delenemy in enemies)
+                        {
+                            Enemy enemyLogic = delenemy.GetComponent<Enemy>();
+                            enemyLogic.OnHit(1000);
+                            Destroy(delenemy);
+                        }
 
+                        GameObject[] enemyBullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
+                        foreach (var delBullets in enemyBullets)
+                        {
+                            Destroy(delBullets);
+                        }
+                    }
+                    break; 
             }
+
+            Destroy(collision.gameObject);
+
         }
     }
+
+    void OffBoomEffect()
+    {
+        boomEffectObj.SetActive(false);
+    }
+
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "PlayerBorder")
