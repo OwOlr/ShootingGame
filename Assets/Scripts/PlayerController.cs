@@ -6,33 +6,89 @@ public class PlayerController : MonoBehaviour
 {
     public float speed;
     public float power = 0f;
+    public float life = 3;
+    public bool isHit = false;
+    public bool isdelCol = false;
 
     public bool isTouchTop = false;
     public bool isTouchBottom = false;
     public bool isTouchLeft = false;
     public bool isTouchRight = false;
+    public bool isStop = false;
 
     public GameObject bulletPrefebA;
     public GameObject bulletPrefebB;
     public float curBulletDelay = 0f;
     public float maxBulletDelay = 1f;
 
+    public float curColDelay = 0f;
+    public float maxColDelay = 1f;
 
+    public GameObject gameMObj;
+
+    SpriteRenderer spRenderer;
     Animator anim;
 
 
     private void Start()
     {
         anim = GetComponent<Animator>();
+        spRenderer = GetComponent<SpriteRenderer>();
         
     }
 
     // Update is called once per frame
     void Update()
     {
-        Move();
+        if (isStop == false)
+        {
+            Move();
+        }
+        
         Fire();
         RelodadBullet();
+
+
+       
+
+    }
+    private void FixedUpdate()
+    {
+        if (isdelCol)
+        {
+            curColDelay += Time.deltaTime;
+            
+        }
+        if (curColDelay > maxColDelay)
+        {
+            
+            isdelCol = false;
+            isStop = false;
+            gameObject.GetComponent<PolygonCollider2D>().enabled = true;
+                 curColDelay = 0;
+                 
+        }
+        
+        if (isHit)
+        { 
+            
+            float val = Mathf.Sin(Time.time * 50);
+
+            if (val > 0)
+            {
+                gameObject.GetComponent<SpriteRenderer>().enabled = true;
+            }
+            else
+            {
+                gameObject.GetComponent<SpriteRenderer>().enabled = false;
+            }
+            return; 
+
+        }
+
+       
+
+        
     }
 
     public void Move()
@@ -62,14 +118,13 @@ public class PlayerController : MonoBehaviour
         {
             return;
         }
-        if (curBulletDelay  < maxBulletDelay)
+        if (curBulletDelay < maxBulletDelay)
         {
             return;
         }
 
         Power();
-
-        
+ 
 
         curBulletDelay = 0;
     }
@@ -77,6 +132,9 @@ public class PlayerController : MonoBehaviour
     {
         curBulletDelay += Time.deltaTime;   //deltaTime = 프레임간의 간격
     }
+
+
+
     void Power()
     {
         switch (power)
@@ -161,6 +219,28 @@ public class PlayerController : MonoBehaviour
                     break;
             }
             
+        }
+        if(collision.gameObject.tag == "EnemyBullet")
+        {
+
+            GameManager gameLogic = gameMObj.GetComponent<GameManager>();
+            if (life == 0)
+            {
+                gameLogic.GameOver();
+            }
+            else
+            {
+                isHit = true;
+                isdelCol = true;
+                life--;
+               
+                gameObject.GetComponent<PolygonCollider2D>().enabled = false;
+                isStop = true;
+                gameLogic.ResPawnPlayer();
+
+                
+
+            }
         }
     }
     private void OnTriggerExit2D(Collider2D collision)

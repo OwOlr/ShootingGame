@@ -6,9 +6,13 @@ public class Enemy : MonoBehaviour
 {
     public float speed;
     public float health;
+    public float curBulletDelay = 0f;
+    public float maxBulletDelay = 1f;
+
+    public GameObject playerObject;
 
     public Sprite[] sprites;
-
+    public GameObject bulletPrefeb;
     SpriteRenderer spriteRender;
 
     Rigidbody2D rd;
@@ -20,33 +24,33 @@ public class Enemy : MonoBehaviour
        rd = GetComponent<Rigidbody2D>();
 
         spriteRender = GetComponent<SpriteRenderer>();
-
-
     }
     // Start is called before the first frame update
     void Start()
     {
-       
-       rd = GetComponent<Rigidbody2D>();
-
-       spriteRender = GetComponent<SpriteRenderer>();
-
+       //rd = GetComponent<Rigidbody2D>();
+       //spriteRender = GetComponent<SpriteRenderer>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
+        Fire();
+        RelodadBullet();
+
     }
 
     public void Move(int nPoint)
     {
         if (nPoint == 3 || nPoint ==4)  ///오른쪽 스폰 포인트 배열 인덱스 값
         {
+            transform.Rotate(Vector3.forward * 90);
             rd.velocity = new Vector2(speed, -1);
         }
        else if (nPoint == 5 || nPoint == 6)  ///왼쪽 스폰 포인트 배열 인덱스 값
         {
+            transform.Rotate(Vector3.back * 90);
             rd.velocity = new Vector2(speed * (-1), -1);
         }
         else
@@ -89,5 +93,33 @@ public class Enemy : MonoBehaviour
     void ReturnSprite()
     {
         spriteRender.sprite = sprites[0];
+    }
+
+    void Fire()
+    {
+       
+        if (curBulletDelay > maxBulletDelay)
+        {
+            Power();
+
+            curBulletDelay = 0;
+        }
+
+    }
+
+    void Power()
+    {
+        GameObject bulletObj = Instantiate(bulletPrefeb, transform.position, Quaternion.identity);
+        Rigidbody2D rigidBullet = bulletObj.GetComponent<Rigidbody2D>();
+
+
+
+        Vector3 dirVec = playerObject.transform.position - transform.position;
+        rigidBullet.AddForce(dirVec.normalized * 3, ForceMode2D.Impulse);
+    }
+
+    void RelodadBullet()
+    {
+        curBulletDelay += Time.deltaTime;   //deltaTime = 프레임간의 간격
     }
 }
