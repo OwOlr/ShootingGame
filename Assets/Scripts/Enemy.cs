@@ -6,6 +6,8 @@ public class Enemy : MonoBehaviour
 {
     public float speed;
     public float health;
+    public int enemyScore;
+
     public float curBulletDelay = 0f;
     public float maxBulletDelay = 1f;
 
@@ -91,6 +93,8 @@ public class Enemy : MonoBehaviour
 
         if (health <= 0)
         {
+            PlayerController playerLogic = playerObject.GetComponent<PlayerController>();
+            playerLogic.nScore += enemyScore;
             Destroy(gameObject);
         }
 

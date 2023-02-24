@@ -157,8 +157,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d534b1e58cb88f459929832f13400bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 4
+  speed: 5
   health: 12
+  enemyScore: 300
   curBulletDelay: 0
   maxBulletDelay: 1
   playerObject: {fileID: 0}
@@ -166,3 +167,5 @@ MonoBehaviour:
   - {fileID: -1147401495359466748, guid: 138040323294fd440a3a823e5d70ad01, type: 3}
   - {fileID: -7844560889915226194, guid: 138040323294fd440a3a823e5d70ad01, type: 3}
   bulletPrefeb: {fileID: 2059957576475152834, guid: 1f69ac209dd01254da74cb0d05b16fd4, type: 3}
+  isStop: 0
+  rd: {fileID: 0}

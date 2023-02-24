@@ -8,6 +8,9 @@ public class PlayerController : MonoBehaviour
     public float speed;
     public float power = 0f;
     public int life = 3;
+    public int boom;
+    public bool isBoomTime;
+
     public bool isHit = false;
     public bool isdelCol = false;
 
@@ -29,14 +32,14 @@ public class PlayerController : MonoBehaviour
     public GameObject boomEffectObj;
 
 
-    SpriteRenderer spRenderer;
+
     Animator anim;
 
 
     private void Start()
     {
         anim = GetComponent<Animator>();
-        spRenderer = GetComponent<SpriteRenderer>();
+ 
         
     }
 
@@ -46,9 +49,12 @@ public class PlayerController : MonoBehaviour
         if (isStop == false)
         {
             Move();
+            Fire();
+            Boom();
+
+            RelodadBullet();
         }
-        Fire();
-        RelodadBullet(); 
+         
 
     }
 
@@ -129,6 +135,41 @@ public class PlayerController : MonoBehaviour
         curBulletDelay += Time.deltaTime;   //deltaTime = 프레임간의 간격
     }
 
+    public void Boom()
+    {
+        if (!Input.GetButton("Fire2"))
+            return;
+
+        if(isBoomTime)
+            return;
+
+        if(boom == 0)
+            return;
+
+        boom--;
+        isBoomTime = true;
+        GameManager.instance.UpdateBoomIcon(boom);
+
+        // 1. Effect Visible!
+        boomEffectObj.SetActive(true);
+        // Final. Effect Visible Off!
+        Invoke("OffBoomEffect", 2.0f);
+
+        // 2. Remove Enemy
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (var delenemy in enemies)
+        {
+            Enemy enemyLogic = delenemy.GetComponent<Enemy>();
+            enemyLogic.OnHit(1000);
+            Destroy(delenemy);
+        }
+
+        GameObject[] enemyBullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
+        foreach (var delBullets in enemyBullets)
+        {
+            Destroy(delBullets);
+        }
+    }
 
 
     void Power()
@@ -224,12 +265,17 @@ public class PlayerController : MonoBehaviour
 
             gameObject.GetComponent<PolygonCollider2D>().enabled = false;
             isStop = true;
-            GameManager.instance.ResPawnPlayer();
-            
-            if (life <= 0)
-                {
-                    GameManager.instance.GameOver();
-                }
+
+            GameManager.instance.UpdateLifeIcon(life);
+
+            if (life == 0)
+            {
+                GameManager.instance.GameOver();
+            }
+            else
+            {
+                GameManager.instance.ResPawnPlayer();
+            }
             
         }
 
@@ -240,30 +286,24 @@ public class PlayerController : MonoBehaviour
             switch (item.type)
             {
                 case ItemType.Coin:
-                    nScore += 100;
+                    nScore += 1000;
                     break;
                 case ItemType.Power:
                     power++;
                     if (power >= 3)
+                    {
                         power = 3;
+                        nScore += 500;
+                    }                                
                     break;
                 case ItemType.Boom:
-                    { 
-                        boomEffectObj.SetActive(true);
-                        Invoke("OffBoomEffect", 4.0f);
-
-                        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-                        foreach (var delenemy in enemies)
+                    {
+                        boom++;
+                        GameManager.instance.UpdateBoomIcon(boom);
+                        if (boom >= 3)
                         {
-                            Enemy enemyLogic = delenemy.GetComponent<Enemy>();
-                            enemyLogic.OnHit(1000);
-                            Destroy(delenemy);
-                        }
-
-                        GameObject[] enemyBullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
-                        foreach (var delBullets in enemyBullets)
-                        {
-                            Destroy(delBullets);
+                            power = 3;
+                            nScore += 500;
                         }
                     }
                     break; 
@@ -277,6 +317,7 @@ public class PlayerController : MonoBehaviour
     void OffBoomEffect()
     {
         boomEffectObj.SetActive(false);
+        isBoomTime = false;
     }
 
     private void OnTriggerExit2D(Collider2D collision)
