@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.IO;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance = null;
 
     public Transform[] spawnPoints;
-    public GameObject[] enemyPrefabs;
+    public string[] enemyPrefabs;
 
-    public GameObject[] itemPrefebs;
+    public string[] itemPrefebs;
 
     public float curEnemySpawnDelay;
     public float nextEnemySpawnDelay;
@@ -30,6 +31,11 @@ public class GameManager : MonoBehaviour
 
     public bool isStop = false;
 
+    public ObjectManager objectManager;
+
+    public List<Spawn> spawnList;
+    public int spawnIndex;      //다음 적의 인덱스
+    public bool spawnEnd;   //모든 리스폰이 끝났을 때 닫아주는 flag
 
     private void Awake()
     {
@@ -43,12 +49,52 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             
         }
+        spawnList = new List<Spawn>();
+        enemyPrefabs = new string[] { "EnemyS", "EnemyM", "EnemyL", "EnemyB" };
+        itemPrefebs = new string[] { "ItemBoom","ItemCoin", "ItemPower" };
+        ReadSpawnFile();
     }
 
-    // Start is called before the first frame update
-    void Start()
+    void ReadSpawnFile()
     {
-       
+        //1. 변수 초기화
+        spawnList.Clear();
+        spawnIndex = 0;
+        spawnEnd = false;
+
+        //2. 리스폰 파일 읽기.
+        //<텍스트 파일 에셋 클래스>
+        //as = 파일의 유형을 검증하는 함수. 유형이 맞지 않을 경우 null처리 들어감.
+        TextAsset textFile = Resources.Load("Stage0") as TextAsset;
+        //System.IO에서 나온 클래스 - 파일 내의 문자열 데이터 읽기 클래스. 
+        StringReader stringReader = new StringReader(textFile.text);
+
+        //파일 끝을 정해줘야 한다.
+        while (stringReader != null)   
+        {
+            string line = stringReader.ReadLine();  //한 줄씩 읽기
+            
+
+            if(line == null)
+            {
+                break;
+            }
+            //3. 리스폰 데이터 생성
+            Spawn spawnData = new Spawn();
+            spawnData.delay = float.Parse(line.Split(',')[0]);      //Split() - 지정한 구분 문자로 문자열을 나누는 함수.
+            spawnData.type = line.Split(',')[1];
+            spawnData.point = int.Parse(line.Split(',')[2]);
+
+            //spawnList에 spawnDatas 넣기
+            spawnList.Add(spawnData);
+        }
+
+        //StringReader로 열어둔 파일은 작업이 끝난 후 꼭 닫기
+        stringReader.Close();
+
+        //첫번째 스폰 딜레이 적용.
+        nextEnemySpawnDelay = spawnList[0].delay;
+
     }
 
     // Update is called once per frame
@@ -57,11 +103,9 @@ public class GameManager : MonoBehaviour
         if (isStop == false)
         {
             curEnemySpawnDelay += Time.deltaTime;
-            if (curEnemySpawnDelay > nextEnemySpawnDelay)
+            if (curEnemySpawnDelay > nextEnemySpawnDelay && !spawnEnd)
             {
                 SpawnEnemy();
-
-                nextEnemySpawnDelay = Random.Range(1.0f, 2.0f);
                 curEnemySpawnDelay = 0;
             }
         
@@ -81,18 +125,52 @@ public class GameManager : MonoBehaviour
     {
         int randItemType = Random.Range(0, 3);
         int randItemPoint = Random.Range(0, 3);
-        GameObject dropItem = Instantiate(itemPrefebs[randItemType], spawnPoints[randItemPoint].position, Quaternion.identity);
+        GameObject dropItem = objectManager.MakeObj(itemPrefebs[randItemType]);
+        dropItem.transform.position = spawnPoints[randItemPoint].position;
+        dropItem.transform.rotation = Quaternion.identity;
+
+        //Instantiate(itemPrefebs[randItemType], spawnPoints[randItemPoint].position, Quaternion.identity);
     }
 
     void SpawnEnemy()
     {
-        int randType = Random.Range(0, 3);
-        int randPoint = Random.Range(0, 7);
+        int enemyindex = 0;
+        switch (spawnList[spawnIndex].type)
+        {
+            case "S":
+                enemyindex = 0;
+                break;
+            case "M":
+                enemyindex = 1;
+                break;
+            case "L":
+                enemyindex = 2;
+                break;
+            case "B":
+                enemyindex = 3;
+                break;
+        }
+        int enemyPoint = spawnList[spawnIndex].point;
 
-        GameObject goEnemy = Instantiate(enemyPrefabs[randType], spawnPoints[randPoint].position, Quaternion.identity);
+        GameObject goEnemy = objectManager.MakeObj(enemyPrefabs[enemyindex]);
+        goEnemy.transform.position = spawnPoints[enemyPoint].position;
+        goEnemy.transform.rotation = Quaternion.identity;
+
+        //Instantiate(enemyPrefabs[randType], spawnPoints[randPoint].position, Quaternion.identity);
         Enemy enemyLogic = goEnemy.GetComponent<Enemy>();
         enemyLogic.playerObject = player;
-        enemyLogic.Move(randPoint);
+        enemyLogic.objectManager = objectManager;
+        enemyLogic.Move(enemyPoint);
+
+        //리스폰 인덱스 증가 - spawnList 끝을 알림
+        spawnIndex++;
+        if (spawnIndex == spawnList.Count)
+        {
+            spawnEnd = true;
+            return;
+        }
+        //다음 리스폰 딜레이 갱신
+        nextEnemySpawnDelay = spawnList[spawnIndex].delay;
 
     }
 
@@ -130,7 +208,7 @@ public class GameManager : MonoBehaviour
         GameObject[] bullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
         foreach (var item in bullets)
         {
-            Destroy(item);
+            item.SetActive(false);
         }
     }
     void AlivePlayer()

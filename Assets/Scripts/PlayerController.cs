@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -30,17 +27,18 @@ public class PlayerController : MonoBehaviour
 
     public int nScore;
     public GameObject boomEffectObj;
-
-
-
     Animator anim;
+
+    public ObjectManager objectManager;
+
+    public GameObject[] followers;
 
 
     private void Start()
     {
         anim = GetComponent<Animator>();
- 
-        
+
+
     }
 
     // Update is called once per frame
@@ -54,7 +52,7 @@ public class PlayerController : MonoBehaviour
 
             RelodadBullet();
         }
-         
+
 
     }
 
@@ -63,20 +61,20 @@ public class PlayerController : MonoBehaviour
         if (isdelCol)
         {
             curColDelay += Time.deltaTime;
-            
+
         }
         if (curColDelay > maxColDelay)
         {
-            
+
             isdelCol = false;
             isStop = false;
             gameObject.GetComponent<PolygonCollider2D>().enabled = true;
-            curColDelay = 0;             
+            curColDelay = 0;
         }
-        
+
         if (isHit)
-        { 
-            
+        {
+
             float val = Mathf.Sin(Time.time * 50);
 
             if (val > 0)
@@ -87,18 +85,18 @@ public class PlayerController : MonoBehaviour
             {
                 gameObject.GetComponent<SpriteRenderer>().enabled = false;
             }
-            return; 
+            return;
 
         }
- 
+
     }
 
     public void Move()
     {
-         float h = Input.GetAxisRaw("Horizontal");
+        float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
-        anim.SetInteger("Input" , (int)h);
+        anim.SetInteger("Input", (int)h);
         if ((isTouchRight && h == 1) || (isTouchLeft && h == -1))
         {
             h = 0;
@@ -107,7 +105,7 @@ public class PlayerController : MonoBehaviour
         {
             v = 0;
         }
-        
+
         Vector3 curPos = transform.position;
         Vector3 nextPos = new Vector3(h, v, 0) * speed * Time.deltaTime;
 
@@ -126,7 +124,7 @@ public class PlayerController : MonoBehaviour
         }
 
         Power();
- 
+
 
         curBulletDelay = 0;
     }
@@ -140,10 +138,10 @@ public class PlayerController : MonoBehaviour
         if (!Input.GetButton("Fire2"))
             return;
 
-        if(isBoomTime)
+        if (isBoomTime)
             return;
 
-        if(boom == 0)
+        if (boom == 0)
             return;
 
         boom--;
@@ -155,19 +153,50 @@ public class PlayerController : MonoBehaviour
         // Final. Effect Visible Off!
         Invoke("OffBoomEffect", 2.0f);
 
-        // 2. Remove Enemy
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (var delenemy in enemies)
+        // 2. Remove Enemy - 오브젝트 풀링 교체
+        GameObject[] enemiesL = objectManager.GetPool("EnemyL");
+        GameObject[] enemiesM = objectManager.GetPool("EnemyM");
+        GameObject[] enemiesS = objectManager.GetPool("EnemyS");
+        
+        foreach (var delenemyL in enemiesL)
         {
-            Enemy enemyLogic = delenemy.GetComponent<Enemy>();
-            enemyLogic.OnHit(1000);
-            Destroy(delenemy);
+            if (delenemyL.activeSelf)
+            {
+                Enemy enemyLogic = delenemyL.GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+                delenemyL.SetActive(false);
+            }
+        }
+        foreach (var delenemyM in enemiesM)
+        {
+            if (delenemyM.activeSelf)
+            {
+                Enemy enemyLogic = delenemyM.GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+                delenemyM.SetActive(false);
+            }
+        }
+        foreach (var delenemyS in enemiesS)
+        {
+            if (delenemyS.activeSelf)
+            {
+                Enemy enemyLogic = delenemyS.GetComponent<Enemy>();
+                enemyLogic.OnHit(1000);
+                delenemyS.SetActive(false);
+            }
         }
 
-        GameObject[] enemyBullets = GameObject.FindGameObjectsWithTag("EnemyBullet");
-        foreach (var delBullets in enemyBullets)
+        GameObject[] enemyBulletsA = objectManager.GetPool("BulletEnemyA");
+        GameObject[] enemyBulletsB = objectManager.GetPool("BulletEnemyB");
+        foreach (var delBulletsA in enemyBulletsA)
         {
-            Destroy(delBullets);
+            if (delBulletsA.activeSelf)
+                delBulletsA.SetActive(false);
+        }
+        foreach (var delBulletsB in enemyBulletsB)
+        {
+            if (delBulletsB.activeSelf)
+                delBulletsB.SetActive(false);
         }
     }
 
@@ -178,9 +207,11 @@ public class PlayerController : MonoBehaviour
         {
             case 1:
                 {
-                    GameObject bullet = Instantiate(bulletPrefebA,
-                      transform.position,
-                      Quaternion.identity);
+                    GameObject bullet = objectManager.MakeObj("BulletPlayerA");
+                    bullet.transform.position = transform.position;
+                    bullet.transform.rotation = Quaternion.identity;
+
+                    //Instantiate(bulletPrefebA,transform.position,Quaternion.identity);
                     Rigidbody2D rd = bullet.GetComponent<Rigidbody2D>();
 
                     rd.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
@@ -188,49 +219,50 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case 2:
-                {  GameObject bulletR = Instantiate(bulletPrefebA, 
-                    transform.position + Vector3.right * 0.1f, 
-                    Quaternion.identity);
-                Rigidbody2D rdR = bulletR.GetComponent<Rigidbody2D>();
-                
-                rdR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
+                {
+                    GameObject bulletR = objectManager.MakeObj("BulletPlayerA");
+                    bulletR.transform.position = transform.position + Vector3.right * 0.1f;
+                    bulletR.transform.rotation = Quaternion.identity;
+                    //Instantiate(bulletPrefebA, transform.position + Vector3.right * 0.1f, Quaternion.identity);
+                    Rigidbody2D rdR = bulletR.GetComponent<Rigidbody2D>();
+                    rdR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
 
-                GameObject bulletL = Instantiate(bulletPrefebA, 
-                    transform.position + Vector3.left * 0.1f, 
-                    Quaternion.identity);
-                Rigidbody2D rdL = bulletL.GetComponent<Rigidbody2D>();
-                
-                rdL.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
+                    GameObject bulletL = objectManager.MakeObj("BulletPlayerA");
+                    bulletL.transform.position = transform.position + Vector3.left * 0.1f;
+                    bulletL.transform.rotation = Quaternion.identity;
+                    //Instantiate(bulletPrefebA,transform.position + Vector3.left * 0.1f,Quaternion.identity);
+                    Rigidbody2D rdL = bulletL.GetComponent<Rigidbody2D>();
+                    rdL.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
                 }
                 break;
 
-            case 3:
-                { 
-                GameObject bulletC = Instantiate(bulletPrefebB,
-                    transform.position + Vector3.up * 0.1f,
-                    Quaternion.identity);
-                Rigidbody2D rdC = bulletC.GetComponent<Rigidbody2D>();
+            default:
+                {
+                    GameObject bulletC = objectManager.MakeObj("BulletPlayerB");
+                    bulletC.transform.position = transform.position + Vector3.up * 0.1f;
+                    bulletC.transform.rotation = Quaternion.identity;
+                    //Instantiate(bulletPrefebB,transform.position + Vector3.up * 0.1f,Quaternion.identity);
+                    Rigidbody2D rdC = bulletC.GetComponent<Rigidbody2D>();
+                    rdC.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
 
-                rdC.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
+                    GameObject bulletR = objectManager.MakeObj("BulletPlayerA");
+                    bulletR.transform.position = transform.position + Vector3.right * 0.2f;
+                    bulletR.transform.rotation = Quaternion.identity;
+                    //Instantiate(bulletPrefebA,transform.position + Vector3.right * 0.2f,Quaternion.identity);
+                    Rigidbody2D rdR = bulletR.GetComponent<Rigidbody2D>();
+                    rdR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
 
-                GameObject bulletR = Instantiate(bulletPrefebA,
-                    transform.position + Vector3.right * 0.2f,
-                    Quaternion.identity);
-                Rigidbody2D rdR = bulletR.GetComponent<Rigidbody2D>();
-
-                rdR.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
-
-                GameObject bulletL = Instantiate(bulletPrefebA,
-                    transform.position + Vector3.left * 0.2f,
-                    Quaternion.identity);
-                Rigidbody2D rdL = bulletL.GetComponent<Rigidbody2D>();
-
-                rdL.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
+                    GameObject bulletL = objectManager.MakeObj("BulletPlayerA");
+                    bulletL.transform.position = transform.position + Vector3.left * 0.2f;
+                    bulletL.transform.rotation = Quaternion.identity;
+                    //Instantiate(bulletPrefebA,transform.position + Vector3.left * 0.2f,Quaternion.identity);
+                    Rigidbody2D rdL = bulletL.GetComponent<Rigidbody2D>();
+                    rdL.AddForce(Vector2.up * 10, ForceMode2D.Impulse);
                 }
                 break;
 
         }
-       
+
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -255,14 +287,14 @@ public class PlayerController : MonoBehaviour
                 default:
                     break;
             }
-            
+
         }
-        if(collision.gameObject.tag == "EnemyBullet")
+        if (collision.gameObject.tag == "EnemyBullet")
         {
             isHit = true;
             isdelCol = true;
             life--;
-
+            power = 1;
             gameObject.GetComponent<PolygonCollider2D>().enabled = false;
             isStop = true;
 
@@ -271,30 +303,33 @@ public class PlayerController : MonoBehaviour
             if (life == 0)
             {
                 GameManager.instance.GameOver();
+                
             }
             else
             {
                 GameManager.instance.ResPawnPlayer();
             }
-            
+
         }
 
         if (collision.gameObject.tag == "Item")
         {
             Item item = collision.gameObject.GetComponent<Item>();
-            
+
             switch (item.type)
             {
                 case ItemType.Coin:
                     nScore += 1000;
                     break;
                 case ItemType.Power:
-                    power++;
-                    if (power >= 3)
+                    
+                    if (power > 6)
                     {
-                        power = 3;
+                        power = 6;
                         nScore += 500;
-                    }                                
+                    }
+                    power++;
+                    AddFollower();
                     break;
                 case ItemType.Boom:
                     {
@@ -306,12 +341,23 @@ public class PlayerController : MonoBehaviour
                             nScore += 500;
                         }
                     }
-                    break; 
+                    break;
             }
 
-            Destroy(collision.gameObject);
+            collision.gameObject.SetActive(false);
 
         }
+    }
+
+    void AddFollower()
+    {
+        if (power == 4)
+            followers[0].SetActive(true);
+        else if (power == 5)
+            followers[1].SetActive(true);
+        else if (power == 6)
+            followers[2].SetActive(true);
+
     }
 
     void OffBoomEffect()
